@@ -34,7 +34,7 @@ def add(DomainName, RR, Type, Value):  # 添加新的域名解析记录
     request = AddDomainRecordRequest()
     request.set_accept_format('json')
     request.set_DomainName(DomainName)
-    request.set_RR(RR)  # https://blog.zeruns.tech
+    request.set_RR(RR)
     request.set_Type(Type)
     request.set_Value(Value)
     response = client.do_action_with_exception(request)
@@ -59,19 +59,17 @@ if ipv4_flag == 1:
         if domain_list['DomainRecords']['Record'][0]['Value'].strip() != ipv4.strip():
             update(domain_list['DomainRecords']['Record'][0]['RecordId'], name_ipv4, "A", ipv4)
             print("修改域名解析成功")
-        else:  # https://blog.zeruns.tech
+        else:
             print("IPv4地址没变")
     elif domain_list['TotalCount'] > 1:
         from aliyunsdkalidns.request.v20150109.DeleteSubDomainRecordsRequest import DeleteSubDomainRecordsRequest
         request = DeleteSubDomainRecordsRequest()
         request.set_accept_format('json')
-        request.set_DomainName(domain)  # https://blog.zeruns.tech
+        request.set_DomainName(domain)
         request.set_RR(name_ipv4)
         response = client.do_action_with_exception(request)
         add(domain, name_ipv4, "A", ipv4)
         print("修改域名解析成功")
-
-print("本程序版权属于zeruns，博客：https://blog.zeruns.tech")
 
 if ipv6_flag == 1:
     request = DescribeSubDomainRecordsRequest()
@@ -92,14 +90,14 @@ if ipv6_flag == 1:
         if domain_list['DomainRecords']['Record'][0]['Value'].strip() != ipv6.strip():
             update(domain_list['DomainRecords']['Record'][0]['RecordId'], name_ipv6, "AAAA", ipv6)
             print("修改域名解析成功")
-        else:  # https://blog.zeruns.tech
+        else:
             print("IPv6地址没变")
     elif domain_list['TotalCount'] > 1:
         from aliyunsdkalidns.request.v20150109.DeleteSubDomainRecordsRequest import DeleteSubDomainRecordsRequest
         request = DeleteSubDomainRecordsRequest()
         request.set_accept_format('json')
         request.set_DomainName(domain)
-        request.set_RR(name_ipv6)  # https://blog.zeruns.tech
+        request.set_RR(name_ipv6)
         response = client.do_action_with_exception(request)
         add(domain, name_ipv6, "AAAA", ipv6)
         print("修改域名解析成功")
