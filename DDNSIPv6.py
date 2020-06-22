@@ -36,7 +36,7 @@ def add(DomainName, RR, Type, Value):  # 添加新的域名解析记录
     request.set_Value(Value)
     response = client.do_action_with_exception(request)
 
-def getIPv6Address():  # 获取本地短域名
+def getIPv6Address():  # 获取本地IPv6公网地址
     output = os.popen("ipconfig /all").read()
     result = re.findall(r"(([a-f0-9]{1,4}:){7}[a-f0-9]{1,4})", output, re.I)
     return result[0][0]
