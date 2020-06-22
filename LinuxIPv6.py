@@ -8,4 +8,4 @@ def IPv6Address():
     return result[0][0]
 
 if __name__ == "__main__":
-    print(IPv6Address())
+    print("获取到IPv6地址：%s" % IPv6Address())
