@@ -1,24 +1,12 @@
 from aliyunsdkcore.client import AcsClient
-from aliyunsdkcore.acs_exception.exceptions import ClientException
-from aliyunsdkcore.acs_exception.exceptions import ServerException
-from aliyunsdkalidns.request.v20150109.DescribeSubDomainRecordsRequest import DescribeSubDomainRecordsRequest
-from aliyunsdkalidns.request.v20150109.DescribeDomainRecordsRequest import DescribeDomainRecordsRequest
 from urllib.request import urlopen
-import configparser
-import requests
 import logging
 import json
+import sys
 import os
-import re
 
-config = configparser.ConfigParser()
-config.read('config.ini', encoding='utf-8')
-enableipv4 = config.getboolean('enable', 'enableipv4')
-enableipv6 = config.getboolean('enable', 'enableipv6')
-accessKeyId = eval(config.get('access','accessKeyId'))
-accessSecret = eval(config.get('access','accessSecret'))
-domain = eval(config.get('domain','domain'))
-names = eval(config.get('domain','names'))
+logs1="---------------------------------------------------------"
+logs2="========================================================="
 
 logger = logging.getLogger(__name__)
 logger.setLevel(level = logging.INFO)
@@ -27,9 +15,37 @@ handler.setLevel(logging.INFO)
 formatter = logging.Formatter('%(asctime)s %(message)s')
 handler.setFormatter(formatter)
 logger.addHandler(handler)
-logging.basicConfig(level = logging.INFO,format = '%(asctime)s %(message)s')
+logging.basicConfig(level = logging.INFO,format = '%(asctime)s - %(levelname)s - %(message)s')
 
-client = AcsClient(accessKeyId, accessSecret, 'cn-hangzhou')
+def getconfig(key=None, default=None, path="config.json"):
+    if not hasattr(getconfig, "config"):
+        try:
+            with open(path) as config:
+                getconfig.config = json.load(config)
+        except IOError:
+            logging.error('配置文件%s不存在！' % path)
+            with open(path, 'w') as config:
+                configure = {
+                    "enableipv4": True,
+                    "enableipv6": True,
+                    "accessKeyId":"youraccessKeyId",
+                    "accessSecret":"youraccessSecret",
+                    "domain":"your.domain",
+                    "names": [
+                        "host"
+                    ]
+                    
+                }
+                json.dump(configure, config, indent=2, sort_keys=True)
+            sys.stdout.write("已生成新的配置文件%s！\n" % path)
+            input('已生成新的配置文件，快去修改它，填入信息！')
+        except:
+            logging.error('无法从%s加载配置文件！' % path)
+            sys.exit('无法从%s加载配置文件！' % path)
+    if key:
+        return getconfig.config.get(key, default)
+    else:
+        return getconfig.config
 
 def update(RecordId, RR, Type, Value):
     from aliyunsdkalidns.request.v20150109.UpdateDomainRecordRequest import UpdateDomainRecordRequest
@@ -51,84 +67,101 @@ def add(DomainName, RR, Type, Value):
     request.set_Value(Value)
     response = client.do_action_with_exception(request)
 
-#def getIPv6Address():
-#    output = os.popen("ipconfig /all").read()
-#    result = re.findall(r"(([a-f0-9]{1,4}:){7}[a-f0-9]{1,4})", output, re.I)
-#    return result[0][0]
+def delete(Domain, Name):
+    from aliyunsdkalidns.request.v20150109.DeleteSubDomainRecordsRequest import DeleteSubDomainRecordsRequest
+    request = DeleteSubDomainRecordsRequest()
+    request.set_accept_format('json')
+    request.set_DomainName(Domain)
+    request.set_RR(Name)
+    response = client.do_action_with_exception(request)
 
-if enableipv4 == True:
-    logs="=================================================================="
-    logger.info(logs)
-    ip = urlopen('https://api-ipv4.ip.sb/ip').read()  # 使用IP.SB的接口获取ipv4地址
-    ipv4 = str(ip, encoding='utf-8')
+def getinfo(Domain, Name):
+    from aliyunsdkalidns.request.v20150109.DescribeSubDomainRecordsRequest import DescribeSubDomainRecordsRequest
+    request = DescribeSubDomainRecordsRequest()
+    request.set_accept_format('json')
+    request.set_DomainName(Domain)
+    request.set_SubDomain(Name + '.' + Domain)
+    response = client.do_action_with_exception(request)
+    info = json.loads(response)
+    return info
+
+def index(index):
+    logger.info('类型：%s' % (info['DomainRecords']['Record'][index]['Type']))
+    logger.info('值：%s' % (info['DomainRecords']['Record'][index]['Value']))
+    logger.info(logs1)
+
+def getipv4():
+    ipv4 = urlopen('https://api-ipv4.ip.sb/ip').read()
+    ipv4 = str(ipv4, encoding='utf-8')
     ipv4 = ipv4.strip()
     logs = "获取到本机IPv4地址：%s" % ipv4
     logger.info(logs)
-    for name in names:
-        request = DescribeSubDomainRecordsRequest()
-        request.set_accept_format('json')
-        request.set_DomainName(domain)
-        request.set_SubDomain(name + '.' + domain)
-        response = client.do_action_with_exception(request)
-        domain_list = json.loads(response)
+    return ipv4
 
-        if domain_list['TotalCount'] == 0:
-            add(domain, name, "A", ipv4)
-            logs="域名（%s）新建解析成功" % (name + '.' + domain) 
-        elif domain_list['TotalCount'] == 1:
-            if domain_list['DomainRecords']['Record'][0]['Value'].strip() != ipv4.strip():
-                update(domain_list['DomainRecords']['Record'][0]['RecordId'], name, "A", ipv4)
-                logs="域名（%s）解析修改成功" % (name + '.' + domain)
-            else:
-                logs="域名（%s）IPv4地址没变" % (name + '.' + domain)
-        elif domain_list['TotalCount'] > 1:
-            from aliyunsdkalidns.request.v20150109.DeleteSubDomainRecordsRequest import DeleteSubDomainRecordsRequest
-            request = DeleteSubDomainRecordsRequest()
-            request.set_accept_format('json')
-            request.set_DomainName(domain)
-            request.set_RR(name)
-            response = client.do_action_with_exception(request)
-            add(domain, name, "A", ipv4)
-            logs="域名（%s）解析修改成功" % (name + '.' + domain)
-        logger.info(logs)
-    logs="=================================================================="
-    logger.info(logs)
-    
-
-if enableipv6 == True:
-    logs="=================================================================="
-    logger.info(logs)
-    ip = urlopen('https://api-ipv6.ip.sb/ip').read()  # 使用IP.SB的接口获取ipv6地址
-    ipv6 = str(ip, encoding='utf-8')
+def getipv6():
+    ipv6 = urlopen('https://api-ipv6.ip.sb/ip').read()
+    ipv6 = str(ipv6, encoding='utf-8')
     ipv6 = ipv6.strip()
     logs = "获取到本机IPv6地址：%s" % ipv6
     logger.info(logs)
-    for name in names:
-        request = DescribeSubDomainRecordsRequest()
-        request.set_accept_format('json')
-        request.set_DomainName(domain)
-        request.set_SubDomain(name + '.' + domain)
-        response = client.do_action_with_exception(request)
-        domain_list = json.loads(response)
+    return ipv6
 
-        if domain_list['TotalCount'] == 0:
-            add(domain, name, "AAAA", ipv6)
-            logs="域名（%s）新建解析成功" % (name + '.' + domain) 
-        elif domain_list['TotalCount'] == 1:
-            if domain_list['DomainRecords']['Record'][0]['Value'].strip() != ipv6.strip():
-                update(domain_list['DomainRecords']['Record'][0]['RecordId'], name, "AAAA", ipv6)
-                logs="域名（%s）解析修改成功" % (name + '.' + domain)
-            else:
-                logs="域名（%s）IPv6地址没变" % (name + '.' + domain)
-        elif domain_list['TotalCount'] > 1:
-            from aliyunsdkalidns.request.v20150109.DeleteSubDomainRecordsRequest import DeleteSubDomainRecordsRequest
-            request = DeleteSubDomainRecordsRequest()
-            request.set_accept_format('json')
-            request.set_DomainName(domain)
-            request.set_RR(name)
-            response = client.do_action_with_exception(request)
-            add(domain, name, "AAAA", ipv6)
-            logs="域名（%s）解析修改成功" % (name + '.' + domain)
+def newadd():
+    if enableipv4 == True:
+        ipv4 = getipv4()
+        add(domain, name, "A", ipv4)
+        logs="域名（%s）新建解析成功" % (name + '.' + domain)
         logger.info(logs)
-    logs="=================================================================="
+    if enableipv6 == True:
+        ipv6 = getipv6()
+        add(domain, name, "AAAA", ipv6)
+        logs="域名（%s）新建解析成功" % (name + '.' + domain)
+        logger.info(logs)
+
+def changeipv4():
+    ipv4 = getipv4()
+    if info['DomainRecords']['Record'][i]['Value'].strip() != ipv4.strip():
+        update(info['DomainRecords']['Record'][i]['RecordId'], name, "A", ipv4)
+        logs="域名（%s）解析修改成功" % (name + '.' + domain)
+    else:
+        logs="域名（%s）IPv4地址没变" % (name + '.' + domain)
     logger.info(logs)
+    logger.info(logs1)
+
+def changeipv6():
+    ipv6 = getipv6()
+    if info['DomainRecords']['Record'][i]['Value'].strip() != ipv6.strip():
+        update(info['DomainRecords']['Record'][i]['RecordId'], name, "AAAA", ipv6)
+        logs="域名（%s）解析修改成功" % (name + '.' + domain)
+    else:
+        logs="域名（%s）IPv6地址没变" % (name + '.' + domain)
+    logger.info(logs)
+    logger.info(logs1)
+
+if True == True:
+    enableipv4 = getconfig('enableipv4')
+    enableipv6 = getconfig('enableipv6')
+    accessKeyId = getconfig('accessKeyId')
+    accessSecret = getconfig('accessSecret')
+    domain = getconfig('domain')
+    names = getconfig('names')
+    client = AcsClient(accessKeyId, accessSecret, 'cn-hangzhou')
+
+    for name in names:
+        info = getinfo(domain, name)
+        logger.info(logs2)
+        logger.info('域名（%s）' % (name + '.' + domain))
+        logger.info('总记录个数：%s' % (info['TotalCount']))
+        logger.info(logs1)
+        if info['TotalCount'] == 0:
+            newadd()
+        else:
+            for i, element in enumerate(info['DomainRecords']['Record']):
+                index(i)
+                if  info['DomainRecords']['Record'][i]['Type'] == "A":
+                    if enableipv4 == True:
+                        changeipv4()
+                if info['DomainRecords']['Record'][i]['Type'] == "AAAA":
+                    if enableipv6 == True:
+                        changeipv6()
+
