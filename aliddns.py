@@ -12,10 +12,10 @@ logger = logging.getLogger(__name__)
 logger.setLevel(level = logging.INFO)
 handler = logging.FileHandler("logs.log",encoding='utf-8')
 handler.setLevel(logging.INFO)
-formatter = logging.Formatter('%(asctime)s %(message)s')
+formatter = logging.Formatter('%(asctime)s [%(levelname)s] %(message)s')
 handler.setFormatter(formatter)
 logger.addHandler(handler)
-logging.basicConfig(level = logging.INFO,format = '%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level = logging.INFO,format = '%(asctime)s [%(levelname)s] %(message)s')
 
 def getconfig(key=None, default=None, path="config.json"):
     if not hasattr(getconfig, "config"):
@@ -106,37 +106,43 @@ def getipv6():
     logger.info(logs)
     return ipv6
 
-def newadd():
+def newaddipv4():
     if enableipv4 == True:
         ipv4 = getipv4()
         add(domain, name, "A", ipv4)
         logs="域名（%s）新建解析成功" % (name + '.' + domain)
         logger.info(logs)
+        logger.info(logs1)
+
+def newaddipv6():
     if enableipv6 == True:
         ipv6 = getipv6()
         add(domain, name, "AAAA", ipv6)
         logs="域名（%s）新建解析成功" % (name + '.' + domain)
         logger.info(logs)
+        logger.info(logs1)
 
 def changeipv4():
     ipv4 = getipv4()
-    if info['DomainRecords']['Record'][i]['Value'].strip() != ipv4.strip():
-        update(info['DomainRecords']['Record'][i]['RecordId'], name, "A", ipv4)
-        logs="域名（%s）解析修改成功" % (name + '.' + domain)
-    else:
-        logs="域名（%s）IPv4地址没变" % (name + '.' + domain)
-    logger.info(logs)
-    logger.info(logs1)
+    if enableipv4 == True:
+        if info['DomainRecords']['Record'][i]['Value'].strip() != ipv4.strip():
+            update(info['DomainRecords']['Record'][i]['RecordId'], name, "A", ipv4)
+            logs="域名（%s）解析修改成功" % (name + '.' + domain)
+        else:
+            logs="域名（%s）IPv4地址没变" % (name + '.' + domain)
+        logger.info(logs)
+        logger.info(logs1)
 
 def changeipv6():
     ipv6 = getipv6()
-    if info['DomainRecords']['Record'][i]['Value'].strip() != ipv6.strip():
-        update(info['DomainRecords']['Record'][i]['RecordId'], name, "AAAA", ipv6)
-        logs="域名（%s）解析修改成功" % (name + '.' + domain)
-    else:
-        logs="域名（%s）IPv6地址没变" % (name + '.' + domain)
-    logger.info(logs)
-    logger.info(logs1)
+    if enableipv6 == True:
+        if info['DomainRecords']['Record'][i]['Value'].strip() != ipv6.strip():
+            update(info['DomainRecords']['Record'][i]['RecordId'], name, "AAAA", ipv6)
+            logs="域名（%s）解析修改成功" % (name + '.' + domain)
+        else:
+            logs="域名（%s）IPv6地址没变" % (name + '.' + domain)
+        logger.info(logs)
+        logger.info(logs1)
 
 if True == True:
     enableipv4 = getconfig('enableipv4')
@@ -154,14 +160,21 @@ if True == True:
         logger.info('总记录个数：%s' % (info['TotalCount']))
         logger.info(logs1)
         if info['TotalCount'] == 0:
-            newadd()
-        else:
+                newaddipv4()
+                newaddipv6()
+        elif info['TotalCount'] == 1:
+            if  info['DomainRecords']['Record'][0]['Type'] == "A":
+                i = 0
+                changeipv4()
+                newaddipv6()
+            elif  info['DomainRecords']['Record'][0]['Type'] == "AAAA":
+                i = 0
+                changeipv6()
+                newaddipv4()
+        elif info['TotalCount'] == 2:
             for i, element in enumerate(info['DomainRecords']['Record']):
                 index(i)
                 if  info['DomainRecords']['Record'][i]['Type'] == "A":
-                    if enableipv4 == True:
                         changeipv4()
                 if info['DomainRecords']['Record'][i]['Type'] == "AAAA":
-                    if enableipv6 == True:
                         changeipv6()
-
