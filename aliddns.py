@@ -3,7 +3,6 @@ from urllib.request import urlopen
 import logging
 import json
 import sys
-import os
 
 logs1="---------------------------------------------------------"
 logs2="========================================================="
