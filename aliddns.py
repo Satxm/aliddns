@@ -1,3 +1,4 @@
+#coding=utf-8
 from aliyunsdkcore.client import AcsClient
 from urllib.request import urlopen
 import logging
@@ -31,12 +32,13 @@ def getconfig(key=None, default=None, path="config.json"):
                     "accessSecret":"youraccessSecret",
                     "domain":"your.domain",
                     "names": [
-                        "host"
+                        "host1",
+                        "host2"
                     ]
-                    
                 }
                 json.dump(configure, config, indent=2, sort_keys=True)
-            sys.stdout.write("已生成新的配置文件%s！\n" % path)
+            sys.stdout.write("已生成新的配置文件%s！\n\n" % path)
+            print("config.json 配置文件说明：\n\n    accessKeyId：你获取的阿里云accessKeyId\n    accessSecret：你获取的阿里云accessSecret\n\n    domain：你的域名\n    names：你的域名的主机记录值\n\n    enableipv4/6：是否启用IPv4/6的DDNS动态域名\n    true 为启用，false 为禁用\n")
             input('已生成新的配置文件，快去修改它，填入信息！')
         except:
             logging.error('无法从%s加载配置文件！' % path)
@@ -84,9 +86,9 @@ def getinfo(Domain, Name):
     info = json.loads(response)
     return info
 
-def index(index):
-    logger.info('类型：%s' % (info['DomainRecords']['Record'][index]['Type']))
-    logger.info('值：%s' % (info['DomainRecords']['Record'][index]['Value']))
+def index(i):
+    logger.info('类型：%s' % (info['DomainRecords']['Record'][i]['Type']))
+    logger.info('值：%s' % (info['DomainRecords']['Record'][i]['Value']))
     logger.info(logs1)
 
 def getipv4():
@@ -162,18 +164,18 @@ if True == True:
                 newaddipv4()
                 newaddipv6()
         elif info['TotalCount'] == 1:
-            if  info['DomainRecords']['Record'][0]['Type'] == "A":
+            if info['DomainRecords']['Record'][0]['Type'] == "A":
                 i = 0
                 changeipv4()
                 newaddipv6()
-            elif  info['DomainRecords']['Record'][0]['Type'] == "AAAA":
+            elif info['DomainRecords']['Record'][0]['Type'] == "AAAA":
                 i = 0
                 changeipv6()
                 newaddipv4()
         elif info['TotalCount'] == 2:
             for i, element in enumerate(info['DomainRecords']['Record']):
                 index(i)
-                if  info['DomainRecords']['Record'][i]['Type'] == "A":
+                if info['DomainRecords']['Record'][i]['Type'] == "A":
                         changeipv4()
                 if info['DomainRecords']['Record'][i]['Type'] == "AAAA":
                         changeipv6()
