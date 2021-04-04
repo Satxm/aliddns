@@ -5,17 +5,17 @@ import logging
 import json
 import sys
 
-logs1="---------------------------------------------------------"
-logs2="========================================================="
+logsa="---------------------------------------------------------"
+logsb="========================================================="
+
+logging.basicConfig(format = '%(asctime)s [%(levelname)s] %(message)s')
 
 logger = logging.getLogger(__name__)
 logger.setLevel(level = logging.INFO)
 handler = logging.FileHandler("logs.log",encoding='utf-8')
 handler.setLevel(logging.INFO)
-formatter = logging.Formatter('%(asctime)s [%(levelname)s] %(message)s')
-handler.setFormatter(formatter)
+handler.setFormatter(logging.Formatter('%(asctime)s [%(levelname)s] %(message)s'))
 logger.addHandler(handler)
-logging.basicConfig(level = logging.INFO,format = '%(asctime)s [%(levelname)s] %(message)s')
 
 def getconfig(key=None, default=None, path="config.json"):
     if not hasattr(getconfig, "config"):
@@ -23,7 +23,7 @@ def getconfig(key=None, default=None, path="config.json"):
             with open(path) as config:
                 getconfig.config = json.load(config)
         except IOError:
-            logging.error('配置文件%s不存在！' % path)
+            logger.error('配置文件%s不存在！' % path)
             with open(path, 'w') as config:
                 configure = {
                     "enableipv4": True,
@@ -40,8 +40,9 @@ def getconfig(key=None, default=None, path="config.json"):
             sys.stdout.write("已生成新的配置文件%s！\n\n" % path)
             print("config.json 配置文件说明：\n\n    accessKeyId：你获取的阿里云accessKeyId\n    accessSecret：你获取的阿里云accessSecret\n\n    domain：你的域名\n    names：你的域名的主机记录值\n\n    enableipv4/6：是否启用IPv4/6的DDNS动态域名\n    true 为启用，false 为禁用\n")
             input('已生成新的配置文件，快去修改它，填入信息！')
+            sys.exit(0)
         except:
-            logging.error('无法从%s加载配置文件！' % path)
+            logger.error('无法从%s加载配置文件！' % path)
             sys.exit('无法从%s加载配置文件！' % path)
     if key:
         return getconfig.config.get(key, default)
@@ -89,61 +90,69 @@ def getinfo(Domain, Name):
 def index(i):
     logger.info('类型：%s' % (info['DomainRecords']['Record'][i]['Type']))
     logger.info('值：%s' % (info['DomainRecords']['Record'][i]['Value']))
-    logger.info(logs1)
+    logger.info(logsa)
 
 def getipv4():
-    ipv4 = urlopen('https://api-ipv4.ip.sb/ip').read()
-    ipv4 = str(ipv4, encoding='utf-8')
-    ipv4 = ipv4.strip()
-    logs = "获取到本机IPv4地址：%s" % ipv4
-    logger.info(logs)
+    try:
+        ipv4 = urlopen('https://api-ipv4.ip.sb/ip').read()
+        ipv4 = str(ipv4, encoding='utf-8')
+        ipv4 = ipv4.strip()
+        logs = "获取到本机IPv4地址：%s" % ipv4
+        logger.info(logs)
+    except:
+        ipv4 = None
+        logger.error("无法获取本机IPv4地址，请检查配置！")
     return ipv4
 
 def getipv6():
-    ipv6 = urlopen('https://api-ipv6.ip.sb/ip').read()
-    ipv6 = str(ipv6, encoding='utf-8')
-    ipv6 = ipv6.strip()
-    logs = "获取到本机IPv6地址：%s" % ipv6
-    logger.info(logs)
+    try:
+        ipv6 = urlopen('https://api-ipv6.ip.sb/ip').read()
+        ipv6 = str(ipv6, encoding='utf-8')
+        ipv6 = ipv6.strip()
+        logs = "获取到本机IPv6地址：%s" % ipv6
+        logger.info(logs)
+    except:
+        ipv6 = None
+        logger.error("无法获取本机IPv6地址，请检查配置！")
     return ipv6
 
 def newaddipv4():
     if enableipv4 == True:
         ipv4 = getipv4()
-        add(domain, name, "A", ipv4)
-        logs="域名（%s）新建解析成功" % (name + '.' + domain)
-        logger.info(logs)
-        logger.info(logs1)
+        if ipv4 != None:
+            add(domain, name, "A", ipv4)
+            logger.info("域名（%s）新建解析成功" % (name + '.' + domain))
+            logger.info(logsa)
 
 def newaddipv6():
     if enableipv6 == True:
         ipv6 = getipv6()
-        add(domain, name, "AAAA", ipv6)
-        logs="域名（%s）新建解析成功" % (name + '.' + domain)
-        logger.info(logs)
-        logger.info(logs1)
+        if ipv6 != None:
+            add(domain, name, "AAAA", ipv6)
+            logger.info("域名（%s）新建解析成功" % (name + '.' + domain))
+            logger.info(logsa)
 
 def changeipv4():
-    ipv4 = getipv4()
     if enableipv4 == True:
-        if info['DomainRecords']['Record'][i]['Value'].strip() != ipv4.strip():
-            update(info['DomainRecords']['Record'][i]['RecordId'], name, "A", ipv4)
-            logs="域名（%s）解析修改成功" % (name + '.' + domain)
-        else:
-            logs="域名（%s）IPv4地址没变" % (name + '.' + domain)
-        logger.info(logs)
-        logger.info(logs1)
+        ipv4 = getipv4()
+        if ipv4 != None:
+            if info['DomainRecords']['Record'][i]['Value'].strip() != ipv4.strip():
+                update(info['DomainRecords']['Record'][i]['RecordId'], name, "A", ipv4)
+                logger.info("域名（%s）解析修改成功" % (name + '.' + domain))
+            else:
+                logger.info("域名（%s）IPv4地址没变" % (name + '.' + domain))
+            logger.info(logsa)
 
 def changeipv6():
-    ipv6 = getipv6()
     if enableipv6 == True:
-        if info['DomainRecords']['Record'][i]['Value'].strip() != ipv6.strip():
-            update(info['DomainRecords']['Record'][i]['RecordId'], name, "AAAA", ipv6)
-            logs="域名（%s）解析修改成功" % (name + '.' + domain)
-        else:
-            logs="域名（%s）IPv6地址没变" % (name + '.' + domain)
-        logger.info(logs)
-        logger.info(logs1)
+        ipv6 = getipv6()
+        if ipv6 != None:
+            if info['DomainRecords']['Record'][i]['Value'].strip() != ipv6.strip():
+                update(info['DomainRecords']['Record'][i]['RecordId'], name, "AAAA", ipv6)
+                logger.info("域名（%s）解析修改成功" % (name + '.' + domain))
+            else:
+                logger.info("域名（%s）IPv6地址没变" % (name + '.' + domain))
+            logger.info(logsa)
 
 if True == True:
     enableipv4 = getconfig('enableipv4')
@@ -152,30 +161,30 @@ if True == True:
     accessSecret = getconfig('accessSecret')
     domain = getconfig('domain')
     names = getconfig('names')
-    client = AcsClient(accessKeyId, accessSecret, 'cn-hangzhou')
 
     for name in names:
-        info = getinfo(domain, name)
-        logger.info(logs2)
+        try:
+            client = AcsClient(accessKeyId, accessSecret, 'cn-hangzhou')
+            info = getinfo(domain, name)
+        except:
+            logger.error("运行中出现错误，请检查配置文件！")
+            sys.exit(0)
+        logger.info(logsb)
         logger.info('域名（%s）' % (name + '.' + domain))
         logger.info('总记录个数：%s' % (info['TotalCount']))
-        logger.info(logs1)
+        logger.info('修改IPv4地址：%s' %enableipv4)
+        logger.info('修改IPv6地址：%s' %enableipv6)
+        logger.info(logsa)
         if info['TotalCount'] == 0:
-                newaddipv4()
-                newaddipv6()
-        elif info['TotalCount'] == 1:
-            if info['DomainRecords']['Record'][0]['Type'] == "A":
-                i = 0
-                changeipv4()
-                newaddipv6()
-            elif info['DomainRecords']['Record'][0]['Type'] == "AAAA":
-                i = 0
-                changeipv6()
-                newaddipv4()
-        elif info['TotalCount'] == 2:
+            newaddipv4()
+            newaddipv6()
+        elif info['TotalCount'] != 0:
             for i, element in enumerate(info['DomainRecords']['Record']):
-                index(i)
                 if info['DomainRecords']['Record'][i]['Type'] == "A":
-                        changeipv4()
-                if info['DomainRecords']['Record'][i]['Type'] == "AAAA":
-                        changeipv6()
+                    changeipv4()
+                    if info['TotalCount'] == 1:
+                        newaddipv6()
+                elif info['DomainRecords']['Record'][i]['Type'] == "AAAA":
+                    changeipv6()
+                    if info['TotalCount'] == 1:
+                        newaddipv4()
