@@ -1,0 +1,1 @@
+pyinstaller.exe -F -i .\aliddns.ico .\aliddns.py  --version-file .\aliddns.txt
