@@ -32,7 +32,7 @@ class Log:
         datefmt="%Y-%m-%d  %H:%M:%S"
         )
     console_formatter = colorlog.ColoredFormatter(
-        fmt="%(log_color)s %(asctime)s [%(levelname)s] : %(message)s",
+        fmt="%(log_color)s%(asctime)s [%(levelname)s] : %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
         log_colors=log_colors_config
         )
@@ -70,15 +70,12 @@ class GetConfig:
                         }
                     json.dump(configure, config, indent=4, sort_keys=False)
                 sys.stdout.write("已生成新的配置文件config.json！\n\n")
-                Log.logger.warning("已生成新的配置文件config.json！\nconfig.json 配置文件说明：\n\n    accessKeyId：你获取的阿里云accessKeyId\n    accessSecret：你获取的阿里云accessSecret\n\n    enableipv4/6：是否启用IPv4/6的DDNS动态域名更新\n    true 为启用，false 为禁用\n\n    domain：你的域名\n    names: 你的主机记录值（支持多个）\n\n    enabletimedrun: 是否启用后台自动间隔运行\n    true 为启用，false 为禁用\n    timedruntime: 为间隔运行时间（单位为秒）\n")
-                try:
-                    input("已生成新的配置文件，详细填写说明可以查看log文件，填入你的信息，并重新打开本程序！")
-                except (KeyboardInterrupt):
-                    sys.exit(0)
+                Log.logger.warning("已生成新的配置文件config.json！\n\nconfig.json 配置文件说明：\n\n    accessKeyId：你获取的阿里云accessKeyId\n    accessSecret：你获取的阿里云accessSecret\n\n    enableipv4/6：是否启用IPv4/6的DDNS动态域名更新\n    true 为启用，false 为禁用\n\n    domain：你的域名\n    names: 你的主机记录值（支持多个）\n\n    enabletimedrun: 是否启用后台自动间隔运行\n    true 为启用，false 为禁用\n    timedruntime: 为间隔运行时间（单位为秒）\n")
+                input("配置文件的详细填写说明在log文件中，填入你的信息，重新运行本程序！")
                 sys.exit(0)
             except:
                 Log.logger.error("无法从config.json加载配置文件！")
-                sys.exit("无法从config.json加载配置文件！")
+                sys.exit(0)
         if key:
             return GetConfig.getconfig.config.get(key, default)
         else:
