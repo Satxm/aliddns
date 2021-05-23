@@ -4,12 +4,10 @@
 ### 下载
 项目地址:
 	[Github](https://github.com/Satxm/aliddns)
-	
 	[Gitee](https://gitee.com/satxm/aliddns)
 
 发布地址：
 	[Github-Releases](https://github.com/Satxm/aliddns/releases)
-	
 	[Gitee-Releases](https://gitee.com/satxm/aliddns/releases)
 
 ### Windows
