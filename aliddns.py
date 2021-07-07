@@ -221,19 +221,40 @@ class DDNS:
             Log.logger.info("IPv4地址DDNS功能：{0}" .format("启用" if enableipv4 == True else "禁用"))
             Log.logger.info("IPv6地址DDNS功能：{0}" .format("启用" if enableipv6 == True else "禁用"))
             Log.logger.info(Log.logsa)
-            if info["TotalCount"] == 0:
-                DDNS.newaddipv4()
-                DDNS.newaddipv6()
-            elif info["TotalCount"] != 0:
-                for i, element in enumerate(info["DomainRecords"]["Record"]):
+            for i, element in enumerate(info["DomainRecords"]["Record"]):
+                if info["TotalCount"] == 0:
+                    DDNS.newaddipv4()
+                    DDNS.newaddipv6()
+                elif info["TotalCount"] == 1:
+                    if  info["DomainRecords"]["Record"][i]["Type"] == "A":
+                        DDNS.changeipv4()
+                        DDNS.newaddipv6()
+                    elif info["DomainRecords"]["Record"][i]["Type"] == "AAAA":
+                        DDNS.changeipv6()
+                        DDNS.newaddipv4()
+                    else:
+                        DDNS.newaddipv6()
+                        DDNS.newaddipv4()
+                elif info["TotalCount"] == 2:
+                    Log.logger.info("Start")
                     if info["DomainRecords"]["Record"][i]["Type"] == "A":
                         DDNS.changeipv4()
-                        if info["TotalCount"] == 1:
+                        if info["DomainRecords"]["Record"][1-i]["Type"] != "AAAA":
                             DDNS.newaddipv6()
                     elif info["DomainRecords"]["Record"][i]["Type"] == "AAAA":
                         DDNS.changeipv6()
-                        if info["TotalCount"] == 1:
+                        if info["DomainRecords"]["Record"][1-i]["Type"] != "A":
                             DDNS.newaddipv4()
+                    else:
+                        Log.logger.info("跳过非域名记录类型")
+                else:
+                    if info["DomainRecords"]["Record"][i]["Type"] == "A":
+                        DDNS.changeipv4()
+                    elif info["DomainRecords"]["Record"][i]["Type"] == "AAAA":
+                        DDNS.changeipv6()
+                    else:
+                        Log.logger.info("跳过非域名记录类型")
+
 
 class Timed:
     def Main():
